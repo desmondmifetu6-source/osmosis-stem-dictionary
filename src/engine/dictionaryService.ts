@@ -99,11 +99,15 @@ function loadScriptOnce(src: string): Promise<void> {
   });
 }
 
+function stripAccents(str: string): string {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
 function resolveDiagramForEntry(
   raw: RawDictionaryEntry,
-  diagramMap: Record<string, string>
+  diagramMap: Record<string, string>,
+  diagramLib?: Record<string, { id: string; title: string; image: string; labels: string[] }>
 ): string | null {
-  if (!diagramMap) return null;
   const candidates: string[] = [];
   if (raw.word) candidates.push(raw.word.trim().toLowerCase());
   const rawHead = (raw.raw_headword || raw.raw || '').trim().toLowerCase();
@@ -118,10 +122,31 @@ function resolveDiagramForEntry(
     }
   }
 
-  for (const key of candidates) {
-    const hit = diagramMap[key];
-    if (hit) {
-      return `./${hit.replace(/^\/+/, '')}`;
+  // Also include accent-stripped candidates (e.g. "büchner funnel" -> "buchner funnel")
+  const expanded: string[] = [];
+  for (const c of candidates) {
+    expanded.push(c);
+    const ascii = stripAccents(c);
+    if (ascii !== c) expanded.push(ascii);
+  }
+
+  if (diagramMap) {
+    for (const key of expanded) {
+      const hit = diagramMap[key];
+      if (hit) {
+        return `./${hit.replace(/^\/+/, '')}`;
+      }
+    }
+  }
+
+  if (diagramLib) {
+    for (const key of expanded) {
+      if (key === 'animal cell' && diagramLib.animal?.image) {
+        return `./${diagramLib.animal.image.replace(/^\/+/, '')}`;
+      }
+      if (key === 'plant cell' && diagramLib.plant?.image) {
+        return `./${diagramLib.plant.image.replace(/^\/+/, '')}`;
+      }
     }
   }
   return null;
@@ -184,6 +209,7 @@ class DictionaryService {
 
     const rawWords = dictApi.getAllWords();
     const diagramMap = window.DictionaryDiagrams || {};
+    const diagramLib = window.DiagramLibrary || {};
     const entryIndexByWord = new Map<string, number>();
 
     this.entries = new Array(rawWords.length);
@@ -198,7 +224,7 @@ class DictionaryService {
       const displayWord = rawHead.split('(')[0].trim() || word;
       const firstChar = word ? word[0].toUpperCase() : '#';
       const letter = firstChar >= 'A' && firstChar <= 'Z' ? firstChar : '#';
-      const diagramPath = resolveDiagramForEntry(raw, diagramMap);
+      const diagramPath = resolveDiagramForEntry(raw, diagramMap, diagramLib);
 
       if (diagramPath) {
         this.diagramIndices.push(i);
@@ -246,6 +272,23 @@ class DictionaryService {
         });
       }
     }
+
+    // Also include interactive schemas from DiagramLibrary (animal_cell.jpeg, plant_cell.jpeg)
+    for (const schema of Object.values(diagramLib)) {
+      if (!schema?.image) continue;
+      const normalized = `./${schema.image.replace(/^\/+/, '')}`;
+      if (!uniqueDiagMap.has(normalized)) {
+        const keyTerm = schema.id === 'animal' ? 'animal cell' : schema.id === 'plant' ? 'plant cell' : schema.title;
+        const matchedIdx = entryIndexByWord.get(keyTerm.toLowerCase()) ?? null;
+        uniqueDiagMap.set(normalized, {
+          primaryTerm: keyTerm,
+          terms: [keyTerm, ...(schema.labels || [])],
+          image: normalized,
+          entryIdx: matchedIdx,
+        });
+      }
+    }
+
     this.diagramHubItems = Array.from(uniqueDiagMap.values()).sort((a, b) =>
       a.primaryTerm.localeCompare(b.primaryTerm)
     );
@@ -327,6 +370,92 @@ class DictionaryService {
       if (this.entries[i].word.toLowerCase() === target) {
         return this.entries[i];
       }
+    }
+    return null;
+  }
+
+  public getDiagramSchemaForImage(
+    imagePath: string
+  ): { title: string; labels: string[] } | null {
+    const lib = window.DiagramLibrary;
+    if (!lib || !imagePath) return null;
+    const clean = imagePath.toLowerCase();
+    if (clean.includes('animal_cell')) {
+      return lib.animal ? { title: lib.animal.title, labels: lib.animal.labels || [] } : null;
+    }
+    if (clean.includes('plant_cell')) {
+      return lib.plant ? { title: lib.plant.title, labels: lib.plant.labels || [] } : null;
+    }
+    return null;
+  }
+
+  public lookupBestMatch(
+    rawQuery: string,
+    subject: SubjectCategory = 'All'
+  ): { entry: DictionaryEntry; isExact: boolean } | null {
+    const q = rawQuery.trim().toLowerCase();
+    if (!q) return null;
+
+    const pool =
+      subject === 'All'
+        ? this.entries
+        : this.entries.filter((e) => e.subject === subject);
+
+    // 1. Exact word / rawHeadword / synonym match
+    for (let i = 0; i < pool.length; i++) {
+      const e = pool[i];
+      if (
+        e.word.toLowerCase() === q ||
+        e.displayWord.toLowerCase() === q ||
+        e.rawHeadword.toLowerCase() === q ||
+        e.synonyms.some((s) => s.toLowerCase() === q)
+      ) {
+        return { entry: e, isExact: true };
+      }
+    }
+
+    // 2. Word-boundary standalone match (e.g. "phone" -> "mobile phone")
+    const escaped = q.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const wordRx = new RegExp(`\\b${escaped}\\b`, 'i');
+    const titleMatches: DictionaryEntry[] = [];
+    const rawMatches: DictionaryEntry[] = [];
+    const prefixMatches: DictionaryEntry[] = [];
+    const containsMatches: DictionaryEntry[] = [];
+
+    for (let i = 0; i < pool.length; i++) {
+      const e = pool[i];
+      const wLower = e.word.toLowerCase();
+      const rawLower = e.rawHeadword.toLowerCase();
+      if (wordRx.test(wLower)) {
+        titleMatches.push(e);
+      } else if (wordRx.test(rawLower)) {
+        rawMatches.push(e);
+      } else if (wLower.startsWith(q)) {
+        prefixMatches.push(e);
+      } else if (
+        wLower.includes(q) ||
+        rawLower.includes(q) ||
+        e.synonyms.some((s) => s.toLowerCase().includes(q))
+      ) {
+        containsMatches.push(e);
+      }
+    }
+
+    if (titleMatches.length > 0) {
+      titleMatches.sort((a, b) => a.word.length - b.word.length);
+      return { entry: titleMatches[0], isExact: false };
+    }
+    if (rawMatches.length > 0) {
+      rawMatches.sort((a, b) => a.word.length - b.word.length);
+      return { entry: rawMatches[0], isExact: false };
+    }
+    if (prefixMatches.length > 0) {
+      prefixMatches.sort((a, b) => a.word.length - b.word.length);
+      return { entry: prefixMatches[0], isExact: false };
+    }
+    if (containsMatches.length > 0) {
+      containsMatches.sort((a, b) => a.word.length - b.word.length);
+      return { entry: containsMatches[0], isExact: false };
     }
     return null;
   }

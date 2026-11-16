@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   BookOpen,
   Bookmark,
@@ -43,6 +43,10 @@ export const DefinitionCard: React.FC<DefinitionCardProps> = ({
   featured = false,
 }) => {
   const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [entry.diagramPath]);
 
   const visibleSynonyms = entry.synonyms
     .map((s) => s.trim())

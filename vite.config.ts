@@ -28,9 +28,20 @@ function exportDownloadPlugin() {
           }
           const stat = fs.statSync(fullPath);
           const isZip = filename.endsWith('.zip');
+          const isJson = filename.endsWith('.json');
+          const isPatch = filename.endsWith('.patch');
           res.statusCode = 200;
-          res.setHeader('Content-Type', isZip ? 'application/zip' : 'application/octet-stream');
-          if (isZip) {
+          res.setHeader(
+            'Content-Type',
+            isZip
+              ? 'application/zip'
+              : isPatch
+              ? 'text/x-diff; charset=utf-8'
+              : isJson
+              ? 'application/json; charset=utf-8'
+              : 'application/octet-stream'
+          );
+          if (isZip || isPatch) {
             res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
           }
           res.setHeader('Content-Length', String(stat.size));
@@ -51,6 +62,21 @@ function exportDownloadPlugin() {
             res.end();
             return;
           }
+          const manifestPath = path.join(EXPORT_BUNDLE_DIR, 'manifest.json');
+          const manifest = fs.existsSync(manifestPath)
+            ? JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+            : {
+                source: { parts: [], sizeMB: 42.5 },
+                dist: { parts: [], sizeMB: 42.5 },
+                fallbacks: [],
+              };
+          const fallbackLinks = (manifest.fallbacks || [])
+            .map(
+              (fb: { file: string; label: string; sizeMB: number }) =>
+                `<a class="part" href="/export-files/${fb.file}" download="${fb.file}">${fb.label} (${fb.sizeMB} MB)</a>`
+            )
+            .join('');
+
           res.end(`<!doctype html>
 <html lang="en">
   <head>
@@ -105,46 +131,62 @@ function exportDownloadPlugin() {
   <body>
     <main class="card">
       <div class="brand">
-        <img src="/assets/icon-192.png" alt="Osmosis STEM Dictionary" />
+        <img src="./assets/icon-192.png" alt="Osmosis STEM Dictionary" />
         <div>
           <h1>Download Project Archives</h1>
-          <p style="margin-top:2px;font-size:0.78rem;color:#475569;">Chunked safely under 12 MB per request</p>
+          <p style="margin-top:2px;font-size:0.78rem;color:#475569;">Chunked safely under 10 MB per request</p>
         </div>
       </div>
-      <p>Click either button below to assemble and download the complete single ZIP directly in your browser:</p>
+      <p>Download the complete folder for GitHub (includes automated GitHub Pages workflow) or the pre-built <code>dist</code> site:</p>
       <div class="actions">
-        <button id="btn-dist" class="btn btn-primary" onclick="downloadStitched('dist', 'osmosis-stem-dictionary-dist.zip')">
-          <span>Download Ready-to-Host Site (dist.zip · 67.6 MB)</span>
-          <span class="sub">Unzip &amp; drag dist/ straight onto Netlify Drop or Cloudflare Pages</span>
+        <button id="btn-src" class="btn btn-primary" onclick="downloadStitched('source', 'osmosis-stem-dictionary-source.zip')">
+          <span>1. Download Source Code for GitHub (source.zip · ${manifest.source.sizeMB} MB)</span>
+          <span class="sub">Complete src/, public/, package.json &amp; .github/workflows/deploy.yml</span>
         </button>
-        <button id="btn-src" class="btn btn-secondary" onclick="downloadStitched('source', 'osmosis-stem-dictionary-source.zip')">
-          <span>Download Full Source Code (source.zip · 67.6 MB)</span>
-          <span class="sub">Complete React + Vite + Tailwind source &amp; public/ assets</span>
+        <button id="btn-dist" class="btn btn-secondary" onclick="downloadStitched('dist', 'osmosis-stem-dictionary-dist.zip')">
+          <span>2. Download Pre-Built Site (dist.zip · ${manifest.dist.sizeMB} MB)</span>
+          <span class="sub">Unzip &amp; drag dist/ straight onto Netlify Drop or Cloudflare Pages</span>
         </button>
       </div>
       <div id="status" class="status"></div>
       <div class="parts">
-        <p style="font-size:0.8rem;font-weight:700;color:#1e293b;margin:0;">Or download individual source ZIP parts (&lt; 23 MB each):</p>
-        <div class="parts-grid">
-          <a class="part" href="/export-files/1-osmosis-source-core.zip" download="1-osmosis-source-core.zip">1. Core App + 27k Terms (5.0 MB)</a>
-          <a class="part" href="/export-files/2-osmosis-diagrams-part1.zip" download="2-osmosis-diagrams-part1.zip">2. Diagrams Part 1 (18.1 MB)</a>
-          <a class="part" href="/export-files/3-osmosis-diagrams-part2.zip" download="3-osmosis-diagrams-part2.zip">3. Diagrams Part 2 (22.1 MB)</a>
-          <a class="part" href="/export-files/4-osmosis-diagrams-part3.zip" download="4-osmosis-diagrams-part3.zip">4. Diagrams Part 3 (21.7 MB)</a>
+        <p style="font-size:0.84rem;font-weight:800;color:#1e1b4b;margin:0;">Git Patch for Your IDE (Apply directly on commit 0cd0266):</p>
+        <div class="actions" style="margin-top:10px;">
+          <a class="part" style="background:#eef2ff;border-color:#4f46e5;" href="/export-files/osmosis-full-update.patch" download="osmosis-full-update.patch">
+            <span>Full Git Patch: Code + All 431 Missing Diagrams (~24 MB)</span>
+            <span class="sub" style="color:#4338ca;">Run: git apply osmosis-full-update.patch</span>
+          </a>
+          <div class="parts-grid">
+            <a class="part" href="/export-files/osmosis-code-only.patch" download="osmosis-code-only.patch">
+              <span>Code-Only Patch (67 KB)</span>
+              <span class="sub" style="color:#4338ca;">git apply osmosis-code-only.patch</span>
+            </a>
+            <a class="part" href="/export-files/osmosis-missing-diagrams-431.zip" download="osmosis-missing-diagrams-431.zip">
+              <span>431 Missing Diagrams ZIP (18.1 MB)</span>
+              <span class="sub" style="color:#4338ca;">Extract into repo root</span>
+            </a>
+          </div>
         </div>
       </div>
-      <a class="back" href="/">&larr; Back to Osmosis STEM Dictionary</a>
+      <div class="parts">
+        <p style="font-size:0.8rem;font-weight:700;color:#1e293b;margin:0;">Or download individual source ZIP parts (&lt; 15 MB each):</p>
+        <div class="parts-grid">${fallbackLinks}</div>
+      </div>
+      <a class="back" href="./">&larr; Back to Osmosis STEM Dictionary</a>
     </main>
     <script>
+      const MANIFEST = ${JSON.stringify(manifest)};
       async function downloadStitched(kind, filename) {
         const status = document.getElementById('status');
         const b1 = document.getElementById('btn-dist');
         const b2 = document.getElementById('btn-src');
         b1.disabled = true; b2.disabled = true;
         try {
+          const parts = (MANIFEST[kind] && MANIFEST[kind].parts) || [];
           const blobs = [];
-          for (let i = 0; i < 6; i++) {
-            status.textContent = 'Downloading ' + filename + ' (part ' + (i + 1) + ' of 6)...';
-            const res = await fetch('/export-files/' + kind + '.part' + i, { cache: 'no-store' });
+          for (let i = 0; i < parts.length; i++) {
+            status.textContent = 'Downloading ' + filename + ' (part ' + (i + 1) + ' of ' + parts.length + ')...';
+            const res = await fetch('/export-files/' + parts[i], { cache: 'no-store' });
             if (!res.ok) throw new Error('HTTP ' + res.status);
             blobs.push(await res.blob());
           }
@@ -158,9 +200,9 @@ function exportDownloadPlugin() {
           a.click();
           document.body.removeChild(a);
           setTimeout(() => URL.revokeObjectURL(url), 10000);
-          status.textContent = 'Download started: ' + filename;
+          status.textContent = 'Download complete: ' + filename;
         } catch (err) {
-          status.textContent = 'Could not assemble ZIP automatically (' + err.message + '). Use the 4 individual ZIP parts below!';
+          status.textContent = 'Could not assemble ZIP automatically (' + err.message + '). Use the individual ZIP parts below!';
         } finally {
           b1.disabled = false; b2.disabled = false;
         }

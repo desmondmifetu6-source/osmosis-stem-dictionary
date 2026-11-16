@@ -277,14 +277,19 @@ export default function App() {
     playSound('click');
     setSubmittedQuery(trimmed);
     setSearchHistory(addSearchHistory(trimmed));
-    if (visibleEntries[0]) {
+    const best = dictionaryService.lookupBestMatch(trimmed, subjectFilter);
+    if (best?.entry) {
+      setFocusedEntry(best.entry);
+      void cacheViewedEntry(best.entry).then(() => setRecentViewed(getRecentViewed()));
+      playSound('chip');
+    } else if (visibleEntries[0]) {
       setFocusedEntry(visibleEntries[0]);
       void cacheViewedEntry(visibleEntries[0]).then(() => setRecentViewed(getRecentViewed()));
       playSound('chip');
     } else {
       playSound('error');
     }
-  }, [query, visibleEntries]);
+  }, [query, subjectFilter, visibleEntries]);
 
   const handlePronounce = useCallback((entryOrWord: DictionaryEntry | string) => {
     const text = typeof entryOrWord === 'string' ? entryOrWord : entryOrWord.displayWord;
@@ -458,6 +463,14 @@ export default function App() {
   };
 
   const quizStats = useMemo(() => loadQuizStats(), [quizModal.isOpen]);
+
+  const activeDiagramSchema = useMemo(
+    () =>
+      diagramModal.isOpen && diagramModal.imagePath
+        ? dictionaryService.getDiagramSchemaForImage(diagramModal.imagePath)
+        : null,
+    [diagramModal.isOpen, diagramModal.imagePath]
+  );
 
   return (
     <div className="relative min-h-screen min-w-0 overflow-x-hidden pb-24 lg:pb-12">
@@ -1167,6 +1180,8 @@ export default function App() {
         imagePath={diagramModal.imagePath}
         definition={diagramModal.definition}
         subject={diagramModal.subject}
+        schemaTitle={activeDiagramSchema?.title}
+        schemaLabels={activeDiagramSchema?.labels}
         isSpeaking={speakingWord === diagramModal.title}
         onPronounce={(text) => handlePronounce(text)}
         onToggleReadMeaning={(def) => {
@@ -1180,6 +1195,17 @@ export default function App() {
               onend: () => setSpeakingWord(null),
               onerror: () => setSpeakingWord(null),
             });
+          }
+        }}
+        onJumpToTerm={(term) => {
+          const hit = dictionaryService.lookupBestMatch(term, 'All')?.entry;
+          setDiagramModal((d) => ({ ...d, isOpen: false }));
+          if (hit) {
+            selectEntry(hit);
+          } else {
+            setQuery(term);
+            setSubmittedQuery(term);
+            setActiveView('lexicon');
           }
         }}
         onClose={() => setDiagramModal((d) => ({ ...d, isOpen: false }))}

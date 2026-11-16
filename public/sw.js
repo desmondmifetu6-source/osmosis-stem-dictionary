@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'osmosis-dict-v4';
+const CACHE_VERSION = 'osmosis-dict-v5';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -6,6 +6,7 @@ const PRECACHE_URLS = [
   './',
   './index.html',
   './manifest.json',
+  './search_worker.js',
   './core_dictionary.js',
   './core_dictionary_diagrams.js',
   './core_diagram_data.js',
@@ -63,7 +64,12 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
-  if (url.origin === self.location.origin && url.pathname.includes('/export')) return;
+  if (
+    url.origin === self.location.origin &&
+    (url.pathname.includes('/export') || url.pathname.includes('/api/'))
+  ) {
+    return;
+  }
 
   // Navigation & HTML pages: Network-First with offline fallback to cached shell
   const isNavigation =

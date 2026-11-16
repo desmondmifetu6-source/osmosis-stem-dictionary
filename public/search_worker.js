@@ -109,7 +109,7 @@ self.onmessage = function (e) {
       const subject = classifyEntry(wordLower, rawLower, defLower);
       const letter = computeLetter(wordLower);
 
-      records[i] = { idx: i, wordLower, synLowers, letter, subject };
+      records[i] = { idx: i, wordLower, rawLower, synLowers, letter, subject };
       subjectsByIdx[i] = subject;
       subjectCounts[subject] = (subjectCounts[subject] || 0) + 1;
 
@@ -163,6 +163,7 @@ self.onmessage = function (e) {
         if (subjectFilter !== 'All' && r.subject !== subjectFilter) continue;
         if (
           r.wordLower.includes(q) ||
+          r.rawLower.includes(q) ||
           r.synLowers.some((s) => s.includes(q))
         ) {
           picked.add(i);
@@ -188,24 +189,43 @@ self.onmessage = function (e) {
     const matched = [];
 
     if (q.length > 0) {
-      // Prefix matches first, then substring matches
+      // Exact -> Synonym exact -> Word-boundary -> Prefix -> Substring priority (parity with module_library.js)
+      const escaped = q.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const wordRx = new RegExp(`\\b${escaped}\\b`, 'i');
+      const exactMatches = [];
+      const boundaryMatches = [];
       const prefixMatches = [];
       const otherMatches = [];
+
       for (let i = 0; i < records.length; i++) {
         const r = records[i];
         if (subject !== 'All' && r.subject !== subject) continue;
         if (letter !== 'ALL' && r.letter !== letter) continue;
         if (diagramOnly && diagramSet && !diagramSet.has(i)) continue;
 
-        if (r.wordLower === q) {
-          prefixMatches.unshift(i);
+        if (r.wordLower === q || r.rawLower === q || r.synLowers.includes(q)) {
+          exactMatches.push(i);
+        } else if (wordRx.test(r.wordLower) || wordRx.test(r.rawLower)) {
+          boundaryMatches.push(i);
         } else if (r.wordLower.startsWith(q)) {
           prefixMatches.push(i);
-        } else if (r.wordLower.includes(q) || r.synLowers.some((s) => s.includes(q))) {
+        } else if (
+          r.wordLower.includes(q) ||
+          r.rawLower.includes(q) ||
+          r.synLowers.some((s) => s.includes(q))
+        ) {
           otherMatches.push(i);
         }
       }
-      const combined = prefixMatches.concat(otherMatches);
+
+      // Shortest word-boundary match first (e.g. "phone" -> "mobile phone")
+      boundaryMatches.sort((a, b) => records[a].wordLower.length - records[b].wordLower.length);
+
+      const combined = exactMatches
+        .concat(boundaryMatches)
+        .concat(prefixMatches)
+        .concat(otherMatches);
+
       self.postMessage({
         type: 'FILTER_RESULT',
         id: msg.id,

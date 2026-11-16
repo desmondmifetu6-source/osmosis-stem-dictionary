@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Download, FolderArchive, Package, X } from 'lucide-react';
 
 interface DevExportModalProps {
@@ -6,28 +6,62 @@ interface DevExportModalProps {
   onClose: () => void;
 }
 
+interface ExportManifest {
+  source: { parts: string[]; sizeMB: number };
+  dist: { parts: string[]; sizeMB: number };
+  fallbacks: Array<{ file: string; label: string; sizeMB: number }>;
+}
+
+const DEFAULT_FALLBACKS = [
+  { file: '1-osmosis-source-core.zip', label: '1. Core App + 27k Terms', sizeMB: 5.0 },
+  { file: '2-osmosis-diagrams-part1.zip', label: '2. Diagrams Part 1', sizeMB: 10.7 },
+  { file: '3-osmosis-diagrams-part2.zip', label: '3. Diagrams Part 2', sizeMB: 12.0 },
+  { file: '4-osmosis-diagrams-part3.zip', label: '4. Diagrams Part 3', sizeMB: 14.6 },
+];
+
 export const DevExportModal: React.FC<DevExportModalProps> = ({ isOpen, onClose }) => {
+  const [manifest, setManifest] = useState<ExportManifest | null>(null);
   const [downloading, setDownloading] = useState<'dist' | 'source' | null>(null);
   const [statusText, setStatusText] = useState('');
   const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    fetch('./export-files/manifest.json', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: ExportManifest | null) => {
+        if (data?.source && data?.dist) setManifest(data);
+      })
+      .catch(() => null);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleChunkedDownload = async (kind: 'dist' | 'source', filename: string) => {
     setDownloading(kind);
     setProgress(0);
-    setStatusText(`Starting ${filename}...`);
+    setStatusText(`Preparing ${filename}...`);
     try {
+      let activeManifest = manifest;
+      if (!activeManifest) {
+        const mRes = await fetch('./export-files/manifest.json', { cache: 'no-store' });
+        if (!mRes.ok) throw new Error(`HTTP ${mRes.status}`);
+        activeManifest = (await mRes.json()) as ExportManifest;
+        setManifest(activeManifest);
+      }
+
+      const parts = activeManifest[kind]?.parts || [];
+      if (parts.length === 0) throw new Error('No archive parts found');
+
       const blobs: Blob[] = [];
-      const totalParts = 6;
-      for (let i = 0; i < totalParts; i++) {
-        setStatusText(`Downloading part ${i + 1} of ${totalParts}...`);
-        const res = await fetch(`/export-files/${kind}.part${i}`, { cache: 'no-store' });
+      for (let i = 0; i < parts.length; i++) {
+        setStatusText(`Downloading part ${i + 1} of ${parts.length}...`);
+        const res = await fetch(`./export-files/${parts[i]}`, { cache: 'no-store' });
         if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
+          throw new Error(`HTTP ${res.status} on ${parts[i]}`);
         }
         blobs.push(await res.blob());
-        setProgress(Math.round(((i + 1) / totalParts) * 100));
+        setProgress(Math.round(((i + 1) / parts.length) * 100));
       }
       setStatusText('Packaging ZIP in browser...');
       const fullBlob = new Blob(blobs, { type: 'application/zip' });
@@ -39,14 +73,18 @@ export const DevExportModal: React.FC<DevExportModalProps> = ({ isOpen, onClose 
       a.click();
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 10000);
-      setStatusText(`Download started: ${filename}`);
+      setStatusText(`Download complete: ${filename}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Download blocked';
-      setStatusText(`Automatic ZIP assembly failed (${msg}). Use the 4 individual ZIP parts below.`);
+      setStatusText(`ZIP assembly failed (${msg}). Use the 4 individual ZIP parts below.`);
     } finally {
       setDownloading(null);
     }
   };
+
+  const fallbacks = manifest?.fallbacks || DEFAULT_FALLBACKS;
+  const sourceMB = manifest?.source?.sizeMB ?? 42.5;
+  const distMB = manifest?.dist?.sizeMB ?? 42.5;
 
   return (
     <div
@@ -71,7 +109,7 @@ export const DevExportModal: React.FC<DevExportModalProps> = ({ isOpen, onClose 
                 Download Full Project Folder
               </h2>
               <p className="text-xs font-medium text-slate-500">
-                Split into &lt; 12 MB chunks so browser &amp; proxy never block it
+                Ready for GitHub + automated GitHub Pages deployment
               </p>
             </div>
           </div>
@@ -89,16 +127,16 @@ export const DevExportModal: React.FC<DevExportModalProps> = ({ isOpen, onClose 
           <button
             type="button"
             disabled={downloading !== null}
-            onClick={() => void handleChunkedDownload('dist', 'osmosis-stem-dictionary-dist.zip')}
-            className="osmosis-btn-indigo flex min-h-[56px] w-full items-center gap-3 rounded-2xl px-4 py-3 text-left disabled:opacity-60"
+            onClick={() => void handleChunkedDownload('source', 'osmosis-stem-dictionary-source.zip')}
+            className="osmosis-btn-indigo flex min-h-[58px] w-full items-center gap-3 rounded-2xl px-4 py-3 text-left disabled:opacity-60"
           >
-            <Package className="h-5 w-5 shrink-0" />
+            <Download className="h-5 w-5 shrink-0" />
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-bold">
-                Download Ready-to-Host Site (dist.zip · 67.6 MB)
+                1. Download Source Code for GitHub (source.zip · {sourceMB} MB)
               </span>
               <span className="block text-xs font-normal text-indigo-100">
-                Unzip &amp; drag the dist/ folder into Netlify Drop or Cloudflare Pages
+                Includes src/, public/, package.json &amp; .github/workflows/deploy.yml
               </span>
             </span>
           </button>
@@ -106,16 +144,16 @@ export const DevExportModal: React.FC<DevExportModalProps> = ({ isOpen, onClose 
           <button
             type="button"
             disabled={downloading !== null}
-            onClick={() => void handleChunkedDownload('source', 'osmosis-stem-dictionary-source.zip')}
+            onClick={() => void handleChunkedDownload('dist', 'osmosis-stem-dictionary-dist.zip')}
             className="osmosis-btn-green-gradient flex min-h-[56px] w-full items-center gap-3 rounded-2xl px-4 py-3 text-left disabled:opacity-60"
           >
-            <Download className="h-5 w-5 shrink-0" />
+            <Package className="h-5 w-5 shrink-0" />
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-bold">
-                Download Full Source Code (source.zip · 67.6 MB)
+                2. Download Pre-Built Site (dist.zip · {distMB} MB)
               </span>
               <span className="block text-xs font-normal text-emerald-50">
-                Complete src/, public/ (27,734 terms + 1,801 diagrams) &amp; config
+                Unzip &amp; drag dist/ straight onto Netlify Drop or Cloudflare Pages
               </span>
             </span>
           </button>
@@ -139,42 +177,55 @@ export const DevExportModal: React.FC<DevExportModalProps> = ({ isOpen, onClose 
         )}
 
         <div className="mt-4 border-t border-slate-200 pt-3.5">
+          <p className="text-xs font-bold text-indigo-950">
+            Git Patch for Your IDE (applies cleanly onto commit 0cd0266):
+          </p>
+          <div className="mt-2 space-y-2">
+            <a
+              href="./export-files/osmosis-full-update.patch"
+              download="osmosis-full-update.patch"
+              className="flex min-h-[44px] items-center justify-between rounded-xl border border-indigo-600/35 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-950 hover:bg-indigo-100"
+            >
+              <span>Full Git Patch (Code + 431 Diagrams)</span>
+              <span className="tabular-nums text-indigo-700">24 MB</span>
+            </a>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <a
+                href="./export-files/osmosis-code-only.patch"
+                download="osmosis-code-only.patch"
+                className="flex min-h-[40px] items-center justify-between rounded-xl border border-indigo-600/20 bg-white px-3 py-2 text-xs font-bold text-indigo-900 hover:bg-indigo-50"
+              >
+                <span>Code-Only Patch</span>
+                <span className="tabular-nums text-indigo-700">67 KB</span>
+              </a>
+              <a
+                href="./export-files/osmosis-missing-diagrams-431.zip"
+                download="osmosis-missing-diagrams-431.zip"
+                className="flex min-h-[40px] items-center justify-between rounded-xl border border-indigo-600/20 bg-white px-3 py-2 text-xs font-bold text-indigo-900 hover:bg-indigo-50"
+              >
+                <span>431 Diagrams ZIP</span>
+                <span className="tabular-nums text-indigo-700">18.1 MB</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 border-t border-slate-200 pt-3.5">
           <p className="text-xs font-bold text-slate-700">
-            Direct Small ZIP Parts (if your browser blocks 68 MB downloads):
+            Or download the separate source ZIP parts directly (&lt; 15 MB each):
           </p>
           <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <a
-              href="/export-files/1-osmosis-source-core.zip"
-              download="1-osmosis-source-core.zip"
-              className="flex min-h-[42px] items-center justify-between rounded-xl border border-indigo-600/20 bg-indigo-50/50 px-3 py-2 text-xs font-bold text-indigo-900 hover:bg-indigo-100"
-            >
-              <span>1. Core App + 27k Terms</span>
-              <span className="tabular-nums text-indigo-700">5.0 MB</span>
-            </a>
-            <a
-              href="/export-files/2-osmosis-diagrams-part1.zip"
-              download="2-osmosis-diagrams-part1.zip"
-              className="flex min-h-[42px] items-center justify-between rounded-xl border border-indigo-600/20 bg-indigo-50/50 px-3 py-2 text-xs font-bold text-indigo-900 hover:bg-indigo-100"
-            >
-              <span>2. Diagrams Part 1</span>
-              <span className="tabular-nums text-indigo-700">18.1 MB</span>
-            </a>
-            <a
-              href="/export-files/3-osmosis-diagrams-part2.zip"
-              download="3-osmosis-diagrams-part2.zip"
-              className="flex min-h-[42px] items-center justify-between rounded-xl border border-indigo-600/20 bg-indigo-50/50 px-3 py-2 text-xs font-bold text-indigo-900 hover:bg-indigo-100"
-            >
-              <span>3. Diagrams Part 2</span>
-              <span className="tabular-nums text-indigo-700">22.1 MB</span>
-            </a>
-            <a
-              href="/export-files/4-osmosis-diagrams-part3.zip"
-              download="4-osmosis-diagrams-part3.zip"
-              className="flex min-h-[42px] items-center justify-between rounded-xl border border-indigo-600/20 bg-indigo-50/50 px-3 py-2 text-xs font-bold text-indigo-900 hover:bg-indigo-100"
-            >
-              <span>4. Diagrams Part 3</span>
-              <span className="tabular-nums text-indigo-700">21.7 MB</span>
-            </a>
+            {fallbacks.map((fb) => (
+              <a
+                key={fb.file}
+                href={`./export-files/${fb.file}`}
+                download={fb.file}
+                className="flex min-h-[42px] items-center justify-between rounded-xl border border-indigo-600/20 bg-indigo-50/50 px-3 py-2 text-xs font-bold text-indigo-900 hover:bg-indigo-100"
+              >
+                <span>{fb.label}</span>
+                <span className="tabular-nums text-indigo-700">{fb.sizeMB} MB</span>
+              </a>
+            ))}
           </div>
         </div>
       </div>

@@ -8,9 +8,12 @@ interface DiagramModalProps {
   imagePath: string;
   definition?: string;
   subject?: string;
+  schemaTitle?: string;
+  schemaLabels?: string[];
   isSpeaking: boolean;
   onPronounce: (text: string) => void;
   onToggleReadMeaning: (text: string) => void;
+  onJumpToTerm?: (term: string) => void;
   onClose: () => void;
 }
 
@@ -20,9 +23,12 @@ export const DiagramModal: React.FC<DiagramModalProps> = ({
   imagePath,
   definition,
   subject,
+  schemaTitle,
+  schemaLabels,
   isSpeaking,
   onPronounce,
   onToggleReadMeaning,
+  onJumpToTerm,
   onClose,
 }) => {
   const [scale, setScale] = useState(1);
@@ -229,6 +235,28 @@ export const DiagramModal: React.FC<DiagramModalProps> = ({
           {definition && (
             <div className="text-sm leading-relaxed text-slate-800">
               <ScienceText text={definition} />
+            </div>
+          )}
+          {schemaLabels && schemaLabels.length > 0 && (
+            <div className="mt-4 border-t border-slate-200 pt-3">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-indigo-800">
+                {schemaTitle || 'Key Labeled Structures'} (Tap to inspect term)
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {schemaLabels.map((label) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => {
+                      onPronounce(label);
+                      onJumpToTerm?.(label);
+                    }}
+                    className="min-h-[34px] rounded-lg border border-indigo-600/20 bg-white px-2.5 py-1 text-xs font-semibold capitalize text-indigo-900 shadow-xs transition-colors hover:border-indigo-600 hover:bg-indigo-50"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
