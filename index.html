@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Osmosis STEM Dictionary — Dictionary Library</title>
+    <meta
+      name="description"
+      content="Standalone NaCCA &amp; CSIR endorsed 6-in-1 STEM Dictionary PWA with instant search, KaTeX formula rendering, voice pronunciation, visual diagrams, and recall quizzes."
+    />
+    <meta property="og:title" content="Osmosis STEM Dictionary — Dictionary Library" />
+    <meta
+      property="og:description"
+      content="Search the official Osmosis STEM dictionary for scientific definitions, equations, diagrams, and recall quizzes."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- PWA & Mobile Viewport Tags -->
+    <link rel="manifest" href="./manifest.json" />
+    <meta name="theme-color" content="#4F46E5" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Osmosis" />
+    <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png" />
+
+    <!-- Typography matching module_library.html (Playfair Display + Plus Jakarta Sans + DM Sans) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Playfair+Display:wght@700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Local KaTeX Stylesheet for Offline Formula Rendering -->
+    <link rel="stylesheet" href="./assets/katex/katex.min.css" />
+  </head>
+  <body class="dict-cover-page library-page antialiased">
+    <div id="root"></div>
+    <script>
+      if (window.location.protocol === 'file:') {
+        document.getElementById('root').innerHTML =
+          '<div style="max-width:520px;margin:48px auto;padding:24px;border-radius:20px;background:rgba(255,255,255,0.92);font-family:system-ui,sans-serif;color:#0f172a;box-shadow:0 20px 45px rgba(0,0,0,0.16)">' +
+          '<h2 style="margin:0 0 8px;color:#4f46e5">Open via a Web Server or Free Host</h2>' +
+          '<p style="margin:0 0 12px;line-height:1.5;font-size:14px">Browsers block modern ES modules and Web Workers when opening <code>index.html</code> directly from a local folder (<code>file://</code>).</p>' +
+          '<ul style="margin:0;padding-left:18px;line-height:1.6;font-size:14px">' +
+          '<li><strong>Host Free Online:</strong> Upload the built <code>dist</code> folder to <strong>app.netlify.com/drop</strong>, Cloudflare Pages, or GitHub Pages.</li>' +
+          '<li><strong>Run Locally:</strong> Open this folder in terminal and run <code>npm install &amp;&amp; npm run dev</code> (or <code>npx serve dist</code>).</li>' +
+          '</ul></div>';
+      }
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

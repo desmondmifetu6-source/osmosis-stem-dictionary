@@ -1,0 +1,391 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --bg-light: #F8F9FA;
+    --bg-dark: #E9ECEF;
+    --surface-white: #FFFFFF;
+    --surface-dim: #F1F3F5;
+    --text-main: #212529;
+    --text-secondary: #6C757D;
+    --accent-red: #DC3545;
+    --accent-green: #198754;
+    --accent-primary: #4F46E5;
+    --font-main: "DM Sans", "Plus Jakarta Sans", system-ui, sans-serif;
+    --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
+    --font-serif: "Playfair Display", Georgia, serif;
+  }
+
+  html {
+    font-family: var(--font-main);
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-serif-dict {
+  font-family: var(--font-serif);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+/* =====================================================================
+   Exact Osmosis Dictionary Cover Backdrop (core_styles.css clone)
+   ===================================================================== */
+body.dict-cover-page {
+  background: linear-gradient(135deg, #e0c3fc 0%, #c2e9fb 50%, #a1c4fd 100%) fixed;
+  color: var(--text-main);
+  min-height: 100vh;
+}
+
+.dark body.dict-cover-page {
+  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%) fixed;
+  color: #f1f5f9;
+}
+
+.dict-cover-bg,
+.dict-cover-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.dict-cover-bg {
+  z-index: 0;
+  overflow: hidden;
+}
+
+.dict-cover-bg-img {
+  position: absolute;
+  inset: -24px;
+  width: calc(100% + 48px);
+  height: calc(100% + 48px);
+  object-fit: cover;
+  object-position: center 22%;
+  filter: blur(12px) saturate(0.95) brightness(1.05);
+  transform: scale(1.05);
+  opacity: 0.42;
+}
+
+.dict-cover-overlay {
+  z-index: 1;
+  background: linear-gradient(
+    135deg,
+    rgba(224, 195, 252, 0.72) 0%,
+    rgba(194, 233, 251, 0.68) 50%,
+    rgba(161, 196, 253, 0.76) 100%
+  );
+}
+
+.dark .dict-cover-overlay {
+  background: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.82) 0%,
+    rgba(30, 27, 75, 0.78) 50%,
+    rgba(15, 23, 42, 0.88) 100%
+  );
+}
+
+/* Main Frosted Glass Card matching body.dict-cover-page .card */
+.dict-main-card {
+  background: rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 2px solid rgba(0, 0, 0, 0.16);
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.16),
+    0 5px 15px rgba(0, 0, 0, 0.08);
+  border-radius: 24px;
+}
+
+.dark .dict-main-card {
+  background: rgba(15, 23, 42, 0.66);
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.45),
+    0 5px 15px rgba(0, 0, 0, 0.25);
+}
+
+/* Definition Card & Sub-Surfaces matching body.dict-cover-page .definition-box */
+.dict-definition-box {
+  background: rgba(255, 255, 255, 0.56);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1.5px solid rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+}
+
+.dark .dict-definition-box {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+}
+
+/* Book Thumbnail + Lightbox from core_styles.css */
+.dict-book-thumb {
+  width: 96px;
+  height: auto;
+  border-radius: 8px;
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.18),
+    0 0 0 2px rgba(255, 255, 255, 0.72);
+  transform: rotate(-2deg);
+  transition: transform 0.35s ease, filter 0.2s ease;
+  cursor: zoom-in;
+}
+
+.dict-book-thumb:hover {
+  transform: rotate(0deg) scale(1.04);
+  filter: brightness(1.03);
+}
+
+.dict-page-title {
+  font-family: var(--font-serif);
+  font-size: clamp(1.75rem, 4.5vw, 2.4rem);
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.dict-source-tag {
+  display: inline-block;
+  padding: 0.35rem 1rem;
+  border-radius: 999px;
+  background: rgba(79, 70, 229, 0.18);
+  border: 1.5px solid rgba(79, 70, 229, 0.5);
+  color: #3730a3;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+}
+
+.dark .dict-source-tag {
+  background: rgba(99, 102, 241, 0.22);
+  border-color: rgba(129, 140, 248, 0.55);
+  color: #c7d2fe;
+}
+
+/* Classic Osmosis Button Family */
+.osmosis-btn-indigo {
+  background: #1a237e;
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(26, 35, 126, 0.22);
+  transition: transform 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.osmosis-btn-indigo:hover:not(:disabled) {
+  background: #283593;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(26, 35, 126, 0.3);
+}
+
+.osmosis-btn-blue-gradient {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(118, 75, 162, 0.28);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+.osmosis-btn-blue-gradient:hover:not(:disabled) {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(118, 75, 162, 0.36);
+}
+
+.osmosis-btn-green-gradient {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.28);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.osmosis-btn-green-gradient:hover:not(:disabled) {
+  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(16, 185, 129, 0.36);
+}
+
+.osmosis-btn-gold {
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  color: #111827;
+  box-shadow: 0 8px 20px rgba(255, 193, 7, 0.3);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+.osmosis-btn-gold:hover:not(:disabled) {
+  background: linear-gradient(135deg, #FFE033 0%, #FFB833 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(255, 193, 7, 0.38);
+}
+
+/* Autocomplete Dropdown matching module_library.html */
+.osmosis-autocomplete-dropdown {
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(28px) saturate(1.8);
+  -webkit-backdrop-filter: blur(28px) saturate(1.8);
+  border: 1.5px solid rgba(79, 70, 229, 0.3);
+  border-radius: 16px;
+  box-shadow:
+    0 20px 45px rgba(15, 23, 42, 0.25),
+    0 4px 12px rgba(79, 70, 229, 0.15);
+}
+
+.dark .osmosis-autocomplete-dropdown {
+  background: rgba(15, 23, 42, 0.96);
+  border-color: rgba(129, 140, 248, 0.35);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.55);
+}
+
+/* Formula Renderer output styling matching core_styles.css */
+.science-prose {
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.science-prose sub,
+.science-prose sup {
+  font-size: 0.72em;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+.science-prose sup {
+  top: -0.45em;
+}
+
+.science-prose sub {
+  bottom: -0.22em;
+}
+
+.stem-formula-card {
+  margin: 1rem 0;
+  padding: 0.75rem 0.9rem 0.9rem;
+  max-width: 100%;
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, rgba(15, 23, 42, 0.06) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-left: 4px solid #4f46e5;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.25rem;
+}
+
+.dark .stem-formula-card {
+  background: rgba(15, 23, 42, 0.7);
+  border-color: rgba(129, 140, 248, 0.3);
+  border-left-color: #818cf8;
+}
+
+.stem-formula-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px dashed rgba(99, 102, 241, 0.2);
+}
+
+.stem-formula-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #4f46e5;
+}
+
+.dark .stem-formula-badge {
+  color: #a5b4fc;
+}
+
+.stem-formula-copy-btn {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  padding: 0.22rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.stem-formula-copy-btn:hover {
+  background: #ffffff;
+  color: #1e293b;
+  border-color: #4f46e5;
+}
+
+.dark .stem-formula-copy-btn {
+  background: rgba(30, 41, 59, 0.85);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #cbd5e1;
+}
+
+.stem-formula-copy-btn.copied {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+}
+
+.stem-formula-card .katex-display {
+  margin: 0.45rem 0 !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Sketch float animation for empty state */
+@keyframes sketchFloat {
+  0% { transform: translateY(0) rotate(0deg); }
+  100% { transform: translateY(-5px) rotate(1.5deg); }
+}
+
+.sketch-float {
+  animation: sketchFloat 3.5s ease-in-out infinite alternate;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.pb-safe {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

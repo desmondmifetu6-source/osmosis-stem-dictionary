@@ -1,0 +1,57 @@
+{
+  "id": "./",
+  "name": "Osmosis STEM Dictionary — Dictionary Library",
+  "short_name": "Osmosis",
+  "description": "Official Osmosis 6-in-1 STEM Dictionary PWA with instant Prefix Trie search, KaTeX equations, diagrams, voice recall, and Subject Blitz quizzes.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#4F46E5",
+  "lang": "en",
+  "categories": ["education", "reference", "books"],
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Search STEM Dictionary",
+      "short_name": "Search",
+      "description": "Search 27,700+ STEM terms & formulas",
+      "url": "./?focus=search",
+      "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "5-Word Subject Blitz",
+      "short_name": "Quiz Blitz",
+      "description": "Take a rapid 5-question STEM recall quiz",
+      "url": "./?mode=blitz",
+      "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "My Exam Revision",
+      "short_name": "Revision",
+      "description": "Study bookmarked flashcards offline",
+      "url": "./?mode=revision",
+      "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}

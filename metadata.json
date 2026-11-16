@@ -1,0 +1,6 @@
+{
+  "name": "Osmosis STEM Dictionary",
+  "description": "Standalone NaCCA & CSIR endorsed 6-in-1 STEM Dictionary PWA with instant search, KaTeX formula rendering, voice pronunciation, visual diagrams, and recall quizzes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
