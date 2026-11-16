@@ -54,7 +54,7 @@ const DictionaryDiagrams = {
   "abomasum (true stomach)": "diagrams/dict_abomasum_true_stomach.png",
   "abruptly pinnate": "diagrams/dict_paripinnate_leaf.png",
   "abruptly pinnate (even pinnate)": "diagrams/dict_abruptly_pinnate_even_pinnate.png",
-  "abscissa": "diagrams/dict_abscissa.png",
+  "abscissa": "diagrams/dict_cartesian_coordinates.png",
   "absorption spectrum": "diagrams/dict_absorption_spectrum.png",
   "ac generator": "diagrams/dict_ac_generator.png",
   "acceleration": "diagrams/dict_acceleration_time_graph.png",
